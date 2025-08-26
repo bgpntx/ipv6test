@@ -30,7 +30,13 @@
     .ok   { background: var(--ok-bg); color: var(--ok-fg); }
     .fail { background: var(--fail-bg); color: var(--fail-fg); }
     .info { color: var(--muted); }
-    .grid { display: grid; gap: .75rem; max-width: 42rem; }
+    .grid {
+      display: grid;
+      gap: .75rem;
+      max-width: 42rem;
+      justify-items: center;
+      text-align: center;
+    }
     code  { background: #f4f4f4; padding: .15rem .35rem; border-radius: 4px; }
     footer { margin-top: 2rem; font-size: 0.9rem; color: var(--muted); }
   </style>
