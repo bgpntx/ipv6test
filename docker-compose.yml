@@ -1,0 +1,18 @@
+# docker-compose.yml
+services:
+  web:
+    image: caddy:latest
+    container_name: ipv6test
+    restart: unless-stopped
+    network_mode: host           # binds directly to host’s [::]:80/[::]:443
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./site:/srv:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - CADDY_ACME_EMAIL=axe@bgpntx.com
+
+volumes:
+  caddy_data:
+  caddy_config:

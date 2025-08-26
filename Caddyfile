@@ -1,0 +1,18 @@
+{
+  email axe@bgpntx.com
+  # If you want to pin Let's Encrypt only (optional):
+  # acme_ca https://acme-v02.api.letsencrypt.org/directory
+}
+
+# Serve the same site on all three hostnames
+ipv6.0ms.app, ipv4.ipv6.0ms.app, ipv6.ipv6.0ms.app {
+  root * /srv
+  templates
+  encode zstd gzip
+  # Allow cross-origin fetches if you later switch from <img> to fetch():
+  header {
+    Access-Control-Allow-Origin *
+    Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+  }
+  file_server
+}
