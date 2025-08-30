@@ -1,6 +1,7 @@
-# IPv6 Connectivity Test
+# IPv6 Connectivity Test Page
 
-[ipv6.0ms.app](https://ipv6.0ms.app) is a lightweight **IPv6 connectivity test tool** built using [Caddy](https://caddyserver.com/) and Docker. It serves a simple page that:
+This project provides a minimal **IPv6 connectivity test site** using [Caddy](https://caddyserver.com/) inside Docker.  
+It serves a simple HTML page that:
 
 - Detects whether your connection uses **IPv4** or **IPv6**.
 - Runs client-side checks by loading tiny images from dedicated IPv4- and IPv6-only subdomains.
