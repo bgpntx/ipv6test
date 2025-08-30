@@ -1,13 +1,20 @@
-# IPv6 Connectivity Test Page
+# IPv6 Connectivity Test
 
-This project provides a minimal **IPv6 connectivity test site** using [Caddy](https://caddyserver.com/) inside Docker.  
-It serves a simple HTML page that:
+[ipv6.0ms.app](https://ipv6.0ms.app) is a lightweight **IPv6 connectivity test tool** built using [Caddy](https://caddyserver.com/) and Docker. It serves a simple page that:
 
-- Shows how you reached the site (IPv4 or IPv6).
-- Runs a client-side test to verify both IPv4 and IPv6 connectivity by loading a small image from dedicated subdomains.
-- Uses HTTPS automatically via Let’s Encrypt.
-- Includes Matomo tracking (configured for `ipv60msapp.matomo.cloud`).
+- Detects whether your connection uses **IPv4** or **IPv6**.
+- Runs client-side checks by loading tiny images from dedicated IPv4- and IPv6-only subdomains.
+- Automatically provisions HTTPS certificates via Let's Encrypt.
+- (Optionally) Uses Matomo for anonymous analytics hosted at `ipv60msapp.matomo.cloud`.
 
+---
+
+## Quick Start
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/bgpntx/ipv6test.git
+   cd ipv6test
 ---
 
 ## Requirements
