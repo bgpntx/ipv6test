@@ -41,7 +41,7 @@
     html, body { height: 100%; }
     body {
       font-family: "Spinnaker", -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      margin: 2rem;
+      margin: 1.25rem;
       line-height: 1.5;
       text-align: center;
       display: flex;
@@ -103,15 +103,6 @@
     <span class="info">(<code>{{ $ip }}</code>)</span>
   </p>
 
-  <p class="lead">Run a quick, privacy‑friendly IPv6 check. We detect how you reached this page (server‑side) and then actively test IPv6‑only and IPv4‑only reachability from your browser.</p>
-  <nav class="toc" aria-label="On-page navigation">
-    <a href="#how-it-works">How it works</a>·
-    <a href="#why-ipv6">Why test IPv6</a>·
-    <a href="#troubleshoot">Troubleshooting</a>·
-    <a href="#faq">FAQ</a>
-  </nav>
-
-  <!-- Client-side: active dual-stack connectivity test using IPv4-only & IPv6-only hostnames -->
   <div class="grid">
     <div>
       <strong>Active test (client-side):</strong>
@@ -120,32 +111,21 @@
       <div class="info">The test loads a tiny image from each subdomain. Success means your connection can actually reach that stack.</div>
     </div>
   </div>
-
-  <h2 id="how-it-works">How the IPv6 test works</h2>
-  <p>There are two checks: (1) a server‑side detection of how your request arrived (IPv4 or IPv6) based on your client IP in standard headers; and (2) a client‑side active test that tries to load a tiny image from an IPv6‑only hostname and an IPv4‑only hostname. If the IPv6‑only image loads, your device and network have working IPv6 connectivity.</p>
-
-  <h2 id="why-ipv6">Why test IPv6?</h2>
-  <p>IPv6 is the next‑generation Internet protocol that provides a vastly larger address space, better end‑to‑end connectivity, and often improved performance on modern networks. Many ISPs already provide IPv6 natively; this tool helps you confirm if your current connection can reach IPv6‑only services.</p>
-
-  <h2 id="troubleshoot">Troubleshooting tips</h2>
-  <ul style="text-align:left;max-width:48rem;margin:0 auto;">
-    <li>If IPv6 fails but IPv4 works, check whether your router and ISP have IPv6 enabled. Power‑cycle your router after enabling.</li>
-    <li>On desktop OSes, ensure IPv6 is not disabled in your network adapter settings.</li>
-    <li>On mobile, some carriers require data saver/VPN settings to allow IPv6.</li>
-    <li>If you use a VPN, it may be IPv4‑only. Try disconnecting or switching to a provider with IPv6 support.</li>
-  </ul>
-
-  <h2 id="faq">IPv6 FAQ</h2>
-  <dl class="faq">
-    <dt>What is IPv6?</dt>
-    <dd>IPv6 is the most recent version of the Internet Protocol, designed to replace IPv4 and provide a vastly larger address space.</dd>
-    <dt>How do I know if my ISP supports IPv6?</dt>
-    <dd>If the IPv6‑only test shows <strong>OK</strong> and your server‑side connection indicates IPv6, your ISP and network support IPv6. If not, ask your ISP about IPv6 availability.</dd>
-    <dt>Does this test store my IP address?</dt>
-    <dd>This page uses privacy‑friendly analytics (Matomo) and displays your detected IP for your reference. You can disable analytics in your browser or block third‑party requests if desired.</dd>
-    <dt>Will IPv6 improve my speed?</dt>
-    <dd>It can in some cases due to more direct routing and modern network paths, but results vary by ISP and network.</dd>
-  </dl>
+  <script>
+    // Load an image with timeout; report OK/FAIL based on events
+    function testImage(url, elId, timeoutMs) {
+      const el = document.getElementById(elId);
+      const img = new Image();
+      let done = false;
+      const to = setTimeout(() => { if (done) return; done = true; el.textContent = 'FAIL (timeout)'; el.className = 'pill fail'; img.src = ''; }, timeoutMs);
+      img.onload = () => { if (done) return; done = true; clearTimeout(to); el.textContent = 'OK'; el.className = 'pill ok'; };
+      img.onerror = () => { if (done) return; done = true; clearTimeout(to); el.textContent = 'FAIL'; el.className = 'pill fail'; };
+      img.src = url + '?_=' + Date.now();
+    }
+    // Run tests with a modest timeout
+    testImage('https://ipv6.ipv6.0ms.app/ping.png', 'v6', 3500);
+    testImage('https://ipv4.ipv6.0ms.app/ping.png', 'v4', 3500);
+  </script>
   </main>
 
   <!-- Matomo -->
@@ -186,34 +166,6 @@
     "url": "https://ipv6.0ms.app/",
     "description": "Free IPv6 connectivity checker with active IPv6‑only and IPv4‑only reachability tests.",
     "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}
-  }
-  </script>
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "What is IPv6?",
-        "acceptedAnswer": {"@type": "Answer", "text": "IPv6 is the most recent version of the Internet Protocol, designed to replace IPv4 and provide a vastly larger address space."}
-      },
-      {
-        "@type": "Question",
-        "name": "How do I know if my ISP supports IPv6?",
-        "acceptedAnswer": {"@type": "Answer", "text": "If the IPv6‑only test shows OK and your server‑side connection indicates IPv6, your ISP and network support IPv6. If not, ask your ISP about IPv6 availability."}
-      },
-      {
-        "@type": "Question",
-        "name": "Does this test store my IP address?",
-        "acceptedAnswer": {"@type": "Answer", "text": "This page uses privacy‑friendly analytics (Matomo) and displays your detected IP for your reference. You can disable analytics in your browser or block third‑party requests if desired."}
-      },
-      {
-        "@type": "Question",
-        "name": "Will IPv6 improve my speed?",
-        "acceptedAnswer": {"@type": "Answer", "text": "It can in some cases due to more direct routing and modern network paths, but results vary by ISP and network."}
-      }
-    ]
   }
   </script>
 </body>
