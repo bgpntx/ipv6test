@@ -1,4 +1,4 @@
-# Keep ipv6.0ms.app static tester
+# Keep ipv6.0ms.app static tester site
 ipv6.0ms.app {
     encode zstd gzip
     log {
@@ -10,7 +10,7 @@ ipv6.0ms.app {
     templates
 }
 
-# HTTP for 0ms.app → no redirect, return IP (for curl without -L)
+# HTTP for CLI (no redirect) → returns IP directly
 http://0ms.app {
     encode zstd gzip
     log {
@@ -24,7 +24,7 @@ http://0ms.app {
     }
 }
 
-# HTTPS for 0ms.app → keep browser redirect, curl hits API
+# HTTPS for 0ms.app → browsers redirect to tester; curl hits API
 0ms.app {
     encode zstd gzip
     log {
@@ -42,7 +42,7 @@ http://0ms.app {
     }
 }
 
-# Active-test subdomains
+# Subdomains used by the tester for active checks
 ipv6.ipv6.0ms.app {
     encode zstd gzip
     log {
