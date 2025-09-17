@@ -3,6 +3,8 @@ services:
   web:
     image: caddy:latest
     container_name: ipv6test
+    depends_on:
+      - app
     restart: unless-stopped
     network_mode: host           # binds directly to host’s [::]:80/[::]:443
     volumes:
@@ -12,6 +14,112 @@ services:
       - caddy_config:/config
     environment:
       - CADDY_ACME_EMAIL=axe@bgpntx.com
+
+  app:
+    image: golang:1.22-alpine
+    container_name: ipv6test-go
+    restart: unless-stopped
+    # Expose the Go app to the host so Caddy (host network) can reach it at 127.0.0.1:8080
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      - GIN_MODE=release
+    command: >
+      sh -c 'cat >/main.go << "EOF"
+      package main
+
+      import (
+        "encoding/json"
+        "log"
+        "net"
+        "net/http"
+        "os"
+        "strings"
+      )
+
+      // normalize strips zone ids and ::ffff: prefix
+      func normalize(ip string) string {
+        ip = strings.TrimSpace(ip)
+        if i := strings.Index(ip, "%"); i != -1 { ip = ip[:i] }
+        ip = strings.TrimPrefix(ip, "::ffff:")
+        return ip
+      }
+
+      func extractIPs(r *http.Request) (ipv4, ipv6, rawXFF, remote string) {
+        rawXFF = r.Header.Get("X-Forwarded-For")
+        // prefer CF-Connecting-IP if present (Cloudflare)
+        cf := r.Header.Get("CF-Connecting-IP")
+        if cf != "" {
+          ip := net.ParseIP(normalize(cf))
+          if ip != nil {
+            if ip.To4() != nil { ipv4 = ip.String() } else { ipv6 = ip.String() }
+          }
+        }
+        if ipv4 == "" || ipv6 == "" {
+          // parse first address from X-Forwarded-For
+          if rawXFF != "" {
+            parts := strings.Split(rawXFF, ",")
+            for _, p := range parts {
+              ip := net.ParseIP(normalize(p))
+              if ip == nil { continue }
+              if ip.To4() != nil && ipv4 == "" { ipv4 = ip.String() }
+              if ip.To4() == nil && ipv6 == "" { ipv6 = ip.String() }
+              if ipv4 != "" && ipv6 != "" { break }
+            }
+          }
+        }
+        // fallback to remote addr
+        host, _, err := net.SplitHostPort(r.RemoteAddr)
+        if err == nil {
+          remote = normalize(host)
+          if (ipv4 == "" && ipv6 == "") && net.ParseIP(remote) != nil {
+            if net.ParseIP(remote).To4() != nil { ipv4 = remote } else { ipv6 = remote }
+          }
+        }
+        return
+      }
+
+      func jsonHandler(w http.ResponseWriter, r *http.Request) {
+        ipv4, ipv6, xff, remote := extractIPs(r)
+        w.Header().Set("Content-Type", "application/json")
+        _ = json.NewEncoder(w).Encode(map[string]string{
+          "ipv4":            ipv4,
+          "ipv6":            ipv6,
+          "x_forwarded_for": xff,
+          "remote_addr":     remote,
+          "ua":              r.UserAgent(),
+        })
+      }
+
+      func textHandler(w http.ResponseWriter, r *http.Request) {
+        ipv4, ipv6, _, _ := extractIPs(r)
+        if ipv6 != "" {
+          w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+          w.Write([]byte(ipv6 + "\n"))
+          return
+        }
+        if ipv4 != "" {
+          w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+          w.Write([]byte(ipv4 + "\n"))
+          return
+        }
+        jsonHandler(w, r)
+      }
+
+      func main() {
+        mux := http.NewServeMux()
+        // Plain-text single-line for curl without path: prints the best client IP
+        mux.HandleFunc("/", textHandler)
+        // JSON endpoint for structured info
+        mux.HandleFunc("/ip", jsonHandler)
+
+        addr := ":8080"
+        if v := os.Getenv("PORT"); v != "" { addr = ":" + v }
+        log.Printf("Go IP service listening on %s", addr)
+        log.Fatal(http.ListenAndServe(addr, mux))
+      }
+      EOF
+      && go run /main.go'
 
 volumes:
   caddy_data:

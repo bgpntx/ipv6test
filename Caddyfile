@@ -1,18 +1,47 @@
-{
-  email axe@bgpntx.com
-  # If you want to pin Let's Encrypt only (optional):
-  # acme_ca https://acme-v02.api.letsencrypt.org/directory
+# 0ms.app + ipv6.0ms.app (both on HTTPS)
+0ms.app, ipv6.0ms.app {
+	encode zstd gzip
+	log {
+		output stdout
+		format console
+	}
+
+	# Forward real client IP to Go
+	header_up X-Forwarded-For {remote}
+	header_up X-Real-IP {remote}
+	header_up CF-Connecting-IP {remote}
+
+	# Reverse proxy everything to the Go app on localhost:8080
+	reverse_proxy 127.0.0.1:8080
 }
 
-# Serve the same site on all three hostnames
-ipv6.0ms.app, ipv4.ipv6.0ms.app, ipv6.ipv6.0ms.app {
-  root * /srv
-  templates
-  encode zstd gzip
-  # Allow cross-origin fetches if you later switch from <img> to fetch():
-  header {
-    Access-Control-Allow-Origin *
-    Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
-  }
-  file_server
+# Keep ipv6.0ms.app as the existing static tester site
+ipv6.0ms.app {
+    encode zstd gzip
+    log {
+        output stdout
+        format console
+    }
+
+    root * /srv
+    file_server
+    templates
+}
+
+# 0ms.app serves the Go IP API
+0ms.app {
+    encode zstd gzip
+    log {
+        output stdout
+        format console
+    }
+
+    @browser header_regexp browser User-Agent .*Mozilla.*
+    redir @browser https://ipv6.0ms.app
+
+    reverse_proxy 127.0.0.1:8080 {
+        header_up X-Forwarded-For {remote}
+        header_up X-Real-IP {remote}
+        header_up CF-Connecting-IP {remote}
+    }
 }
