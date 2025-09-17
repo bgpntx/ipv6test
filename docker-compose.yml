@@ -1,18 +1,18 @@
-services:
   app:
     image: golang:1.22-alpine
     container_name: ipv6test-go
     restart: unless-stopped
+    environment:
+      - GIN_MODE=release
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/ip || (sleep 2; wget -qO- http://127.0.0.1:8080/ip)"]
       interval: 10s
       timeout: 3s
       retries: 5
       start_period: 20s
-    environment:
-      - GIN_MODE=release
-    command: >
-      sh -c 'cat >/main.go << "EOF"
+    command: |
+      sh -e -c '
+      cat >/main.go << "EOF"
       package main
 
       import (
@@ -53,7 +53,7 @@ services:
         host, _, err := net.SplitHostPort(r.RemoteAddr)
         if err == nil {
           remote = normalize(host)
-          if (ipv4 == "" && ipv6 == "") {
+          if ipv4 == "" && ipv6 == "" {
             if ip := net.ParseIP(remote); ip != nil {
               if ip.To4() != nil { ipv4 = remote } else { ipv6 = remote }
             }
@@ -66,7 +66,11 @@ services:
         ipv4, ipv6, xff, remote := extractIPs(r)
         w.Header().Set("Content-Type", "application/json")
         _ = json.NewEncoder(w).Encode(map[string]string{
-          "ipv4": ipv4, "ipv6": ipv6, "x_forwarded_for": xff, "remote_addr": remote, "ua": r.UserAgent(),
+          "ipv4": ipv4,
+          "ipv6": ipv6,
+          "x_forwarded_for": xff,
+          "remote_addr": remote,
+          "ua": r.UserAgent(),
         })
       }
 
@@ -88,4 +92,5 @@ services:
         log.Fatal(http.ListenAndServe(addr, mux))
       }
       EOF
-      && go run /main.go'
+      exec go run /main.go
+      '
