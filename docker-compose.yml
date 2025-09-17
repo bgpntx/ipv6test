@@ -1,13 +1,9 @@
-version: "3.8"
-
 services:
   web:
     image: caddy:latest
     container_name: ipv6test
     restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
+    network_mode: host            # bind directly to host's :80 and :443 (no NAT)
     depends_on:
       app:
         condition: service_healthy
@@ -23,6 +19,9 @@ services:
     image: golang:1.22-alpine
     container_name: ipv6test-go
     restart: unless-stopped
+    # Expose the Go app to the host loopback so host-networked Caddy can reach it
+    ports:
+      - "127.0.0.1:8080:8080"
     environment:
       - GIN_MODE=release
     healthcheck:
