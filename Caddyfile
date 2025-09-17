@@ -1,17 +1,26 @@
-# Keep ipv6.0ms.app as the existing static tester site
+# Keep ipv6.0ms.app static tester
 ipv6.0ms.app {
     encode zstd gzip
     log {
         output stdout
         format console
     }
-
     root * /srv
     file_server
     templates
 }
 
-# 0ms.app serves the Go IP API
+# HTTP for 0ms.app → no redirect, return IP (for curl without -L)
+http://0ms.app {
+    encode zstd gzip
+    log {
+        output stdout
+        format console
+    }
+    reverse_proxy app:8080
+}
+
+# HTTPS for 0ms.app → keep browser redirect, curl hits API
 0ms.app {
     encode zstd gzip
     log {
@@ -27,20 +36,18 @@ ipv6.0ms.app {
         header_up CF-Connecting-IP {remote}
     }
 }
-# Subdomains used by the tester for active checks
+
+# Active-test subdomains
 ipv6.ipv6.0ms.app {
     encode zstd gzip
     log {
         output stdout
         format console
     }
-
     @ping path /ping.png
     root @ping /srv
     header @ping Cache-Control "public, max-age=60"
     file_server @ping
-
-    # optional: deny directory listing
     respond / 204
 }
 
@@ -50,11 +57,9 @@ ipv4.ipv6.0ms.app {
         output stdout
         format console
     }
-
     @ping path /ping.png
     root @ping /srv
     header @ping Cache-Control "public, max-age=60"
     file_server @ping
-
     respond / 204
 }
