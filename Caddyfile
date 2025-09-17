@@ -1,20 +1,3 @@
-# 0ms.app + ipv6.0ms.app (both on HTTPS)
-0ms.app, ipv6.0ms.app {
-	encode zstd gzip
-	log {
-		output stdout
-		format console
-	}
-
-	# Forward real client IP to Go
-	header_up X-Forwarded-For {remote}
-	header_up X-Real-IP {remote}
-	header_up CF-Connecting-IP {remote}
-
-	# Reverse proxy everything to the Go app on localhost:8080
-	reverse_proxy 127.0.0.1:8080
-}
-
 # Keep ipv6.0ms.app as the existing static tester site
 ipv6.0ms.app {
     encode zstd gzip
