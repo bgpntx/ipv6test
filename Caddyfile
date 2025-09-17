@@ -37,7 +37,7 @@ ipv6.ipv6.0ms.app {
     }
 
     @ping path /ping.png
-    root @ping * /srv
+    root @ping /srv
     header @ping Cache-Control "public, max-age=60"
     file_server @ping
 
@@ -53,7 +53,7 @@ ipv4.ipv6.0ms.app {
     }
 
     @ping path /ping.png
-    root @ping * /srv
+    root @ping /srv
     header @ping Cache-Control "public, max-age=60"
     file_server @ping
 
