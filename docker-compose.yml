@@ -3,10 +3,13 @@ services:
   web:
     image: caddy:latest
     container_name: ipv6test
+    ports:
+      - "80:80"
+      - "443:443"
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     restart: unless-stopped
-    network_mode: host           # binds directly to host’s [::]:80/[::]:443
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./site:/srv:ro
@@ -19,9 +22,13 @@ services:
     image: golang:1.22-alpine
     container_name: ipv6test-go
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/ip"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
     # Expose the Go app to the host so Caddy (host network) can reach it at 127.0.0.1:8080
-    ports:
-      - "127.0.0.1:8080:8080"
     environment:
       - GIN_MODE=release
     command: >

@@ -22,12 +22,11 @@ ipv6.0ms.app {
     @browser header_regexp browser User-Agent .*Mozilla.*
     redir @browser https://ipv6.0ms.app
 
-    reverse_proxy 127.0.0.1:8080 {
+    reverse_proxy app:8080 {
         header_up X-Real-IP {remote}
         header_up CF-Connecting-IP {remote}
     }
 }
-
 # Subdomains used by the tester for active checks
 ipv6.ipv6.0ms.app {
     encode zstd gzip
