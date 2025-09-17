@@ -28,3 +28,41 @@ ipv6.0ms.app {
         header_up CF-Connecting-IP {remote}
     }
 }
+
+# Subdomains used by the tester for active checks
+ipv6.ipv6.0ms.app {
+    encode zstd gzip
+    log {
+        output stdout
+        format console
+    }
+
+    @ping path /ping.png
+    respond @ping 200 {
+        body "<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'></svg>"
+        close
+        header Content-Type "image/svg+xml"
+        header Cache-Control "public, max-age=60"
+    }
+
+    # optional: deny directory listing
+    respond / 204
+}
+
+ipv4.ipv6.0ms.app {
+    encode zstd gzip
+    log {
+        output stdout
+        format console
+    }
+
+    @ping path /ping.png
+    respond @ping 200 {
+        body "<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'></svg>"
+        close
+        header Content-Type "image/svg+xml"
+        header Cache-Control "public, max-age=60"
+    }
+
+    respond / 204
+}
