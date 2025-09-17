@@ -39,7 +39,7 @@ ipv6.ipv6.0ms.app {
     @ping path /ping.png
     header @ping Content-Type "image/svg+xml"
     header @ping Cache-Control "public, max-age=60"
-    respond @ping 200 "<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'></svg>"
+    respond @ping "<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'></svg>" 200
 
     # optional: deny directory listing
     respond / 204
@@ -55,7 +55,7 @@ ipv4.ipv6.0ms.app {
     @ping path /ping.png
     header @ping Content-Type "image/svg+xml"
     header @ping Cache-Control "public, max-age=60"
-    respond @ping 200 "<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'></svg>"
+    respond @ping "<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'></svg>" 200
 
     respond / 204
 }
