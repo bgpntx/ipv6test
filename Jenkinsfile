@@ -71,6 +71,7 @@ pipeline {
                                 # Умовний рестарт сервісів
                                 if [ '${RESTART_SERVICES}' = 'true' ]; then
                                     echo 'Rebuilding and restarting Docker containers...'
+                                    docker compose down --remove-orphans 2>/dev/null || true
                                     docker compose up -d --build
                                     echo 'Docker containers restarted successfully'
                                 else
