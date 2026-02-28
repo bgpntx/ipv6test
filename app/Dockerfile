@@ -6,8 +6,8 @@ COPY main.go .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /ipv6test .
 
 # ── Run stage ──
-FROM alpine:latest
-RUN (apk update || (sleep 10 && apk update)) && apk add --no-cache ca-certificates wget
+FROM scratch
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /ipv6test /ipv6test
 EXPOSE 8080
 ENTRYPOINT ["/ipv6test"]

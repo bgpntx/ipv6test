@@ -249,9 +249,29 @@ func geoHandler(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(geo)
 }
 
+// ─── Healthcheck ─────────────────────────────────────────────
+
+// runHealthcheck performs an HTTP GET to localhost and exits 0/1.
+// Used by Docker healthcheck since scratch image has no wget.
+func runHealthcheck() {
+	resp, err := http.Get("http://127.0.0.1:8080/ip")
+	if err != nil {
+		os.Exit(1)
+	}
+	resp.Body.Close()
+	if resp.StatusCode == http.StatusOK {
+		os.Exit(0)
+	}
+	os.Exit(1)
+}
+
 // ─── Main ────────────────────────────────────────────────────
 
 func main() {
+	// healthcheck mode for Docker (scratch has no wget)
+	if len(os.Args) > 1 && os.Args[1] == "-health" {
+		runHealthcheck()
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", textHandler)    // plain text single-line (IPv6 preferred if present)
 	mux.HandleFunc("/ip", jsonHandler)  // JSON with IP details
