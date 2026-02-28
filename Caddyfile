@@ -5,6 +5,15 @@ ipv6.0ms.app {
         output stdout
         format console
     }
+
+    # Security headers
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    }
+
     root * /srv
     file_server
     templates
@@ -59,6 +68,8 @@ ipv6.ipv6.0ms.app {
         output stdout
         format console
     }
+    # Allow cross-origin requests from the main site
+    header Access-Control-Allow-Origin "https://ipv6.0ms.app"
     @ping path /ping.png
     root @ping /srv
     header @ping Cache-Control "public, max-age=60"
@@ -72,6 +83,8 @@ ipv4.ipv6.0ms.app {
         output stdout
         format console
     }
+    # Allow cross-origin requests from the main site
+    header Access-Control-Allow-Origin "https://ipv6.0ms.app"
     @ping path /ping.png
     root @ping /srv
     header @ping Cache-Control "public, max-age=60"

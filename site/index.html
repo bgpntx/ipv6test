@@ -95,7 +95,7 @@
 
   <p>
     You reached this page over:
-    {{ if gt (len (splitList ":" $ip)) 1 -}}
+    {{ if gt (len (splitList ":" $ip)) 2 -}}
       <span class="pill ok">IPv6</span>
     {{- else -}}
       <span class="pill fail">IPv4</span>
