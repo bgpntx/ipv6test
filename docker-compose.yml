@@ -16,7 +16,7 @@ services:
       - CADDY_ACME_EMAIL=axe@bgpntx.com
 
   app:
-    image: golang:1.22-alpine
+    build: ./app
     container_name: ipv6test-go
     restart: unless-stopped
     # Expose the Go app to the host loopback so host-networked Caddy can reach it
@@ -30,111 +30,6 @@ services:
       timeout: 3s
       retries: 5
       start_period: 20s
-    command: |
-      sh -e -c '
-      cat >/main.go << "EOF"
-      package main
-
-      import (
-        "encoding/json"
-        "log"
-        "net"
-        "net/http"
-        "os"
-        "strings"
-      )
-
-      // stripPort removes :port if present (handles IPv4:port and [IPv6]:port).
-      func stripPort(s string) string {
-        s = strings.TrimSpace(s)
-        if strings.HasPrefix(s, "[") && strings.Contains(s, "]") {
-          if h, _, err := net.SplitHostPort(s); err == nil {
-            return strings.Trim(h, "[]")
-          }
-          s = strings.Trim(s, "[]")
-        }
-        if h, _, err := net.SplitHostPort(s); err == nil {
-          return h
-        }
-        return s
-      }
-
-      // normalize strips :port, zone ids, and ::ffff: prefix.
-      func normalize(ip string) string {
-        ip = stripPort(ip)
-        if i := strings.Index(ip, "%"); i != -1 { // zone id
-          ip = ip[:i]
-        }
-        ip = strings.TrimPrefix(ip, "::ffff:")
-        return strings.TrimSpace(ip)
-      }
-
-      func extractIPs(r *http.Request) (ipv4, ipv6, rawXFF, remote string) {
-        rawXFF = r.Header.Get("X-Forwarded-For")
-
-        // prefer CF-Connecting-IP if present (Cloudflare or header_up)
-        if cf := r.Header.Get("CF-Connecting-IP"); cf != "" {
-          if ip := net.ParseIP(normalize(cf)); ip != nil {
-            if ip.To4() != nil { ipv4 = ip.String() } else { ipv6 = ip.String() }
-          }
-        }
-
-        // parse X-Forwarded-For (may contain multiple, comma-separated)
-        if rawXFF != "" && (ipv4 == "" || ipv6 == "") {
-          for _, p := range strings.Split(rawXFF, ",") {
-            ip := net.ParseIP(normalize(p))
-            if ip == nil { continue }
-            if ip.To4() != nil && ipv4 == "" { ipv4 = ip.String() }
-            if ip.To4() == nil && ipv6 == "" { ipv6 = ip.String() }
-            if ipv4 != "" && ipv6 != "" { break }
-          }
-        }
-
-        // fallback to remote addr of the TCP peer (Caddy -> app)
-        if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-          remote = normalize(host)
-          if (ipv4 == "" && ipv6 == "") {
-            if ip := net.ParseIP(remote); ip != nil {
-              if ip.To4() != nil { ipv4 = remote } else { ipv6 = remote }
-            }
-          }
-        }
-        return
-      }
-
-      func jsonHandler(w http.ResponseWriter, r *http.Request) {
-        ipv4, ipv6, xff, remote := extractIPs(r)
-        w.Header().Set("Content-Type", "application/json")
-        _ = json.NewEncoder(w).Encode(map[string]string{
-          "ipv4":            ipv4,
-          "ipv6":            ipv6,
-          "x_forwarded_for": xff,
-          "remote_addr":     remote,
-          "ua":              r.UserAgent(),
-        })
-      }
-
-      func textHandler(w http.ResponseWriter, r *http.Request) {
-        ipv4, ipv6, _, _ := extractIPs(r)
-        w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-        if ipv6 != "" { w.Write([]byte(ipv6 + "\n")); return }
-        if ipv4 != "" { w.Write([]byte(ipv4 + "\n")); return }
-        w.WriteHeader(http.StatusNoContent)
-      }
-
-      func main() {
-        mux := http.NewServeMux()
-        mux.HandleFunc("/", textHandler)  // plain text single-line (IPv6 preferred if present)
-        mux.HandleFunc("/ip", jsonHandler)
-
-        addr := ":8080"
-        if v := os.Getenv("PORT"); v != "" { addr = ":" + v }
-        log.Printf("Go IP service listening on %s", addr)
-        log.Fatal(http.ListenAndServe(addr, mux))
-      }
-      EOF
-      exec go run /main.go
-      '
 
 volumes:
   caddy_data:
