@@ -71,6 +71,10 @@
       return data.base_fee ?? 0;
     }
 
+    document.getElementById("slugInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("checkBtn").click();
+    });
+
     document.getElementById("checkBtn").addEventListener("click", async () => {
       const input = document.getElementById("slugInput").value.trim();
       const errorEl = document.getElementById("error");
