@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Polymarket Fee Checker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 20px; max-width: 800px; }
+    h1 { font-size: 1.6rem; }
+    label { font-weight: 600; }
+    input[type="text"] { width: 100%; padding: 8px; margin: 8px 0 12px; box-sizing: border-box; }
+    button { padding: 8px 14px; cursor: pointer; }
+    .result { margin-top: 16px; padding: 10px; border-radius: 6px; background: #f5f5f5; white-space: pre-wrap; font-family: Menlo, monospace; font-size: 0.9rem; }
+    .error { color: #b00020; margin-top: 10px; }
+    .ok { color: #006400; }
+    .warn { color: #b36b00; }
+    .market { margin-top: 10px; padding-top: 6px; border-top: 1px solid #ddd; }
+    .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; margin-left: 6px; }
+    .badge-fee { background: #ffe0e0; color: #a00000; }
+    .badge-nofee { background: #e0ffe5; color: #006400; }
+  </style>
+</head>
+<body>
+  <h1>Polymarket Fee Checker</h1>
+
+  <label for="slugInput">Polymarket slug або повний URL</label>
+  <input id="slugInput" type="text" placeholder="Напр. btc-updown-5m-1773313500 або https://polymarket.com/event/serie-a-league-winner" />
+
+  <button id="checkBtn">Перевірити fee</button>
+
+  <div id="error" class="error"></div>
+  <div id="results" class="result" style="display:none;"></div>
+
+  <script>
+    // Proxied through Caddy to bypass CORS
+    const gammaBase = "/gamma-api";
+    const clobBase = "/clob-api";
+
+    function extractSlug(input) {
+      try {
+        if (input.includes("://")) {
+          const url = new URL(input.trim());
+          const parts = url.pathname.split("/").filter(Boolean);
+          const idx = parts.indexOf("event");
+          if (idx !== -1 && parts[idx + 1]) {
+            return parts[idx + 1];
+          }
+          return parts[parts.length - 1];
+        }
+      } catch (e) {
+        // not a URL, treat as slug
+      }
+      return input.trim();
+    }
+
+    async function fetchJson(url) {
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        throw new Error("HTTP " + resp.status + " for " + url);
+      }
+      return resp.json();
+    }
+
+    async function getFeeRate(tokenId) {
+      const url = clobBase + "/fee-rate?token_id=" + encodeURIComponent(tokenId);
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        throw new Error("HTTP " + resp.status + " for fee-rate");
+      }
+      const data = await resp.json();
+      return data.base_fee ?? 0;
+    }
+
+    document.getElementById("checkBtn").addEventListener("click", async () => {
+      const input = document.getElementById("slugInput").value.trim();
+      const errorEl = document.getElementById("error");
+      const resultsEl = document.getElementById("results");
+      errorEl.textContent = "";
+      resultsEl.style.display = "none";
+      resultsEl.textContent = "";
+
+      if (!input) {
+        errorEl.textContent = "Введи slug або URL.";
+        return;
+      }
+
+      const slug = extractSlug(input);
+
+      try {
+        const eventUrl = gammaBase + "/events?slug=" + encodeURIComponent(slug);
+        const events = await fetchJson(eventUrl);
+
+        if (!Array.isArray(events) || events.length === 0) {
+          throw new Error("Подій з таким slug не знайдено.");
+        }
+
+        const event = events[0];
+        const markets = event.markets || [];
+
+        if (!markets.length) {
+          throw new Error("У події немає маркетів.");
+        }
+
+        let output = "";
+        output += "Slug: " + slug + "\n";
+        output += "Title: " + (event.title || event.question || "—") + "\n";
+        output += "Markets: " + markets.length + "\n\n";
+
+        resultsEl.innerHTML = "";
+        resultsEl.style.display = "block";
+
+        const headerPre = document.createElement("div");
+        headerPre.textContent = output;
+        resultsEl.appendChild(headerPre);
+
+        for (const m of markets) {
+          const mDiv = document.createElement("div");
+          mDiv.className = "market";
+
+          const q = m.question || "—";
+          const feesEnabled = !!m.feesEnabled;
+          let tokenIdsRaw = m.clobTokenIds;
+
+          // clobTokenIds може бути рядком JSON
+          let tokenIds = [];
+          if (Array.isArray(tokenIdsRaw)) {
+            tokenIds = tokenIdsRaw;
+          } else if (typeof tokenIdsRaw === "string") {
+            try { tokenIds = JSON.parse(tokenIdsRaw); } catch (e) { tokenIds = []; }
+          }
+
+          const firstTokenId = tokenIds[0];
+
+          const titleSpan = document.createElement("span");
+          titleSpan.textContent = q;
+
+          const badge = document.createElement("span");
+          badge.className = "badge";
+          badge.textContent = feesEnabled ? "feesEnabled=true" : "feesEnabled=false";
+          badge.classList.add(feesEnabled ? "badge-fee" : "badge-nofee");
+
+          mDiv.appendChild(titleSpan);
+          mDiv.appendChild(badge);
+          mDiv.appendChild(document.createElement("br"));
+
+          const tokenSpan = document.createElement("div");
+          tokenSpan.textContent = "Token ID (first): " + (firstTokenId || "—");
+          mDiv.appendChild(tokenSpan);
+
+          if (firstTokenId) {
+            try {
+              const baseFee = await getFeeRate(firstTokenId);
+              const feeSpan = document.createElement("div");
+              feeSpan.textContent = "base_fee: " + baseFee + " bps (~" + (baseFee / 100).toFixed(2) + "% параметр кривої)";
+              mDiv.appendChild(feeSpan);
+
+              const resSpan = document.createElement("div");
+              if (!feesEnabled || baseFee === 0) {
+                resSpan.textContent = "Result: NO trading fee (effective taker fee ~0%)";
+                resSpan.className = "ok";
+              } else {
+                resSpan.textContent = "Result: FEE APPLIES (dynamic taker fee, peak ~1–2% навколо 50% ймовірності)";
+                resSpan.className = "warn";
+              }
+              mDiv.appendChild(resSpan);
+            } catch (e) {
+              const feeErr = document.createElement("div");
+              feeErr.textContent = "Не зміг отримати fee-rate для token_id.";
+              feeErr.className = "error";
+              mDiv.appendChild(feeErr);
+            }
+          } else {
+            const noToken = document.createElement("div");
+            noToken.textContent = "Немає clobTokenIds → не можу перевірити fee-rate.";
+            noToken.className = "error";
+            mDiv.appendChild(noToken);
+          }
+
+          resultsEl.appendChild(mDiv);
+        }
+      } catch (e) {
+        console.error(e);
+        errorEl.textContent = e.message || "Помилка запиту або CORS.";
+      }
+    });
+  </script>
+</body>
+</html>

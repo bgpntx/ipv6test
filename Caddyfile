@@ -14,6 +14,18 @@ ipv6.0ms.app {
         Permissions-Policy "camera=(), microphone=(), geolocation=()"
     }
 
+    # Polymarket API proxy (CORS bypass for polyfee.html)
+    handle_path /gamma-api/* {
+        reverse_proxy https://gamma-api.polymarket.com {
+            header_up Host gamma-api.polymarket.com
+        }
+    }
+    handle_path /clob-api/* {
+        reverse_proxy https://clob.polymarket.com {
+            header_up Host clob.polymarket.com
+        }
+    }
+
     root * /srv
     file_server
     templates

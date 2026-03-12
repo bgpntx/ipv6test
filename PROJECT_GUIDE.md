@@ -22,6 +22,13 @@
 - `ipv6.0ms.app` — статичний сайт з тестом
 - `0ms.app` (HTTP/HTTPS) — CLI API, браузери редиректять на ipv6.0ms.app
 - `ipv4.ipv6.0ms.app` / `ipv6.ipv6.0ms.app` — субдомени для active checks
+- `/gamma-api/*` → reverse proxy до `gamma-api.polymarket.com` (CORS bypass)
+- `/clob-api/*` → reverse proxy до `clob.polymarket.com` (CORS bypass)
+
+### Polymarket Fee Checker (`site/polyfee.html`)
+- Сторінка для перевірки наявності fee на Polymarket маркетах
+- Приймає slug або повний URL події
+- Використовує Gamma API та CLOB API через Caddy reverse proxy
 
 ### Go API (`app/main.go`)
 Ендпоінти:
