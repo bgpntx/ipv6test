@@ -94,21 +94,33 @@ pipeline {
                     '✅ Docker containers rebuilt and restarted' :
                     '⏭️ Docker containers not restarted (only docs/tests changed)'
 
-                discordSend description: ":white_check_mark: **Update to ${DEPLOY_HOST} (ipv6test) was successful!**\n${restartNote}",
-                            footer: "Jenkins Build #${env.BUILD_NUMBER}",
-                            link: env.BUILD_URL,
-                            result: 'SUCCESS',
-                            title: "ipv6test Update Success",
-                            webhookURL: env.DISCORD_URL
+                def payload = groovy.json.JsonOutput.toJson([
+                    embeds: [[
+                        title: "ipv6test Update Success",
+                        description: ":white_check_mark: **Update to ${env.DEPLOY_HOST} (ipv6test) was successful!**\n${restartNote}",
+                        url: env.BUILD_URL,
+                        color: 3066993,
+                        footer: [text: "Jenkins Build #${env.BUILD_NUMBER}"]
+                    ]]
+                ])
+                writeFile file: 'discord.json', text: payload
+                sh 'curl -sS -H "Content-Type: application/json" --data @discord.json "$DISCORD_URL" > /dev/null'
             }
         }
         failure {
-            discordSend description: ":no_entry: **Update to ${DEPLOY_HOST} (ipv6test) FAILED!**\nCheck logs for details.",
-                        footer: "Jenkins Build #${env.BUILD_NUMBER}",
-                        link: env.BUILD_URL,
-                        result: 'FAILURE',
+            script {
+                def payload = groovy.json.JsonOutput.toJson([
+                    embeds: [[
                         title: "ipv6test Update Error",
-                        webhookURL: env.DISCORD_URL
+                        description: ":no_entry: **Update to ${env.DEPLOY_HOST} (ipv6test) FAILED!**\nCheck logs for details.",
+                        url: env.BUILD_URL,
+                        color: 15158332,
+                        footer: [text: "Jenkins Build #${env.BUILD_NUMBER}"]
+                    ]]
+                ])
+                writeFile file: 'discord.json', text: payload
+                sh 'curl -sS -H "Content-Type: application/json" --data @discord.json "$DISCORD_URL" > /dev/null'
+            }
         }
     }
 }
