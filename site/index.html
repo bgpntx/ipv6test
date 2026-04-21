@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <title>IPv6 Connectivity Test – ipv6.0ms.app</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0a0b0f" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f6f7fb" media="(prefers-color-scheme: light)">
 
   <!-- Basic SEO -->
   <meta name="description" content="Free IPv6 Connectivity Test: check if your device and ISP support IPv6. Quick dual‑stack IPv4/IPv6 check with client‑side and server‑side verification.">
@@ -27,56 +29,241 @@
   <!-- Spinnaker font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Spinnaker&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Spinnaker&display=swap" rel="stylesheet">
 
   <style>
     :root {
-      --ok-bg: #d1f7d6;
-      --ok-fg: #0a6b1a;
-      --fail-bg: #ffd4d4;
-      --fail-fg: #7f0e0e;
-      --muted: #555;
-      --chip-radius: 999px;
+      --bg: #f6f7fb;
+      --bg-elevated: #ffffff;
+      --border: #e5e7eb;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-soft: #94a3b8;
+      --accent: #6366f1;
+      --accent-fg: #ffffff;
+      --accent-soft: #eef2ff;
+      --ok-bg: #dcfce7;
+      --ok-fg: #166534;
+      --ok-border: #86efac;
+      --fail-bg: #fee2e2;
+      --fail-fg: #991b1b;
+      --fail-border: #fca5a5;
+      --code-bg: #f1f5f9;
+      --radius-sm: 6px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --radius-pill: 999px;
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, .04), 0 1px 3px rgba(15, 23, 42, .06);
+      --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, .05), 0 10px 24px -6px rgba(15, 23, 42, .08);
+      --font-sans: "Inter", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      --font-display: "Spinnaker", "Inter", -apple-system, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0a0b0f;
+        --bg-elevated: #14161c;
+        --border: #262933;
+        --text: #e5e7eb;
+        --text-muted: #9ca3af;
+        --text-soft: #6b7280;
+        --accent: #818cf8;
+        --accent-fg: #0a0b0f;
+        --accent-soft: rgba(129, 140, 248, .12);
+        --ok-bg: rgba(34, 197, 94, .12);
+        --ok-fg: #86efac;
+        --ok-border: rgba(34, 197, 94, .3);
+        --fail-bg: rgba(239, 68, 68, .12);
+        --fail-fg: #fca5a5;
+        --fail-border: rgba(239, 68, 68, .3);
+        --code-bg: #1a1d26;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, .3), 0 1px 3px rgba(0, 0, 0, .4);
+        --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, .3), 0 10px 24px -6px rgba(0, 0, 0, .5);
+      }
+    }
+
+    * { box-sizing: border-box; }
     html, body { height: 100%; }
     body {
-      font-family: "Spinnaker", -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      margin: 1.25rem;
-      line-height: 1.5;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
+      margin: 0;
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -10%, var(--accent-soft), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 100%, var(--accent-soft), transparent);
+      background-attachment: fixed;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
-    .pill { display: inline-block; padding: .2rem .6rem; border-radius: var(--chip-radius); font-weight: 600; }
-    .ok   { background: var(--ok-bg); color: var(--ok-fg); }
-    .fail { background: var(--fail-bg); color: var(--fail-fg); }
-    .info { color: var(--muted); }
-    .grid {
-      display: grid;
-      gap: .75rem;
-      max-width: 42rem;
-      justify-items: center;
-      text-align: center;
-    }
-    code  { background: #f4f4f4; padding: .15rem .35rem; border-radius: 4px; }
-    footer { margin-top: 2rem; font-size: 0.9rem; color: var(--muted); }
 
-    main { max-width: 60rem; margin: 0 auto; }
-    h2 { margin-top: 1.5rem; }
-    .faq { text-align: left; max-width: 48rem; margin: 1rem auto; }
-    .faq dt { font-weight: 600; margin-top: .75rem; }
-    .faq dd { margin: .25rem 0 1rem 0; color: var(--muted); }
-    .lead { font-size: 1.1rem; color: #222; }
-    nav.toc { margin: .5rem 0 1rem; }
-    nav.toc a { margin: 0 .35rem; }
+    main {
+      max-width: 44rem;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .85rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+    }
+    .brand .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      margin: 0 0 .5rem;
+      color: var(--text);
+    }
+    .lead {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      margin: 0 0 2rem;
+      max-width: 36rem;
+    }
+
+    .card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 1rem;
+    }
+    .card-label {
+      font-size: .75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-soft);
+      margin: 0 0 .75rem;
+    }
+    .card-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .75rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .3rem .7rem;
+      border-radius: var(--radius-pill);
+      font-size: .85rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+      line-height: 1;
+    }
+    .pill.ok   { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-border); }
+    .pill.fail { background: var(--fail-bg); color: var(--fail-fg); border-color: var(--fail-border); }
+    .pill.testing { background: var(--code-bg); color: var(--text-muted); border-color: var(--border); }
+    .pill .icon {
+      width: 14px; height: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pill.testing .spinner {
+      width: 12px; height: 12px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      opacity: .6;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .9em;
+      background: var(--code-bg);
+      padding: .15rem .4rem;
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    .test-row {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: .75rem 0;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .test-row:first-of-type { border-top: none; padding-top: 0; }
+    .test-row .label { font-weight: 500; min-width: 3.5rem; }
+    .test-row code { flex: 1 1 auto; min-width: 0; }
+
+    .hint {
+      font-size: .85rem;
+      color: var(--text-muted);
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: .85rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: space-between;
+      align-items: center;
+    }
+    footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+      border-bottom: 1px dotted var(--text-soft);
+    }
+    footer a:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* Entrance animation */
+    .card, h1, .lead, .brand, footer {
+      animation: fadeUp .4s ease-out backwards;
+    }
+    .brand { animation-delay: 0s; }
+    h1 { animation-delay: .05s; }
+    .lead { animation-delay: .1s; }
+    .card:nth-of-type(1) { animation-delay: .15s; }
+    .card:nth-of-type(2) { animation-delay: .2s; }
+    footer { animation-delay: .3s; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
   </style>
 </head>
 <body>
   <main>
+    <a class="brand" href="https://0ms.app"><span class="dot"></span> 0ms.app</a>
+
     <h1>IPv6 Connectivity Test</h1>
+    <p class="lead">Verify whether your device and network reach the modern internet over IPv6 — with both server‑side detection and live client‑side probes.</p>
 
   <!-- Server-side: determine best client IP from headers, fallback to .RemoteIP -->
   {{- $cf  := .Req.Header.Get "CF-Connecting-IP" -}}
@@ -89,49 +276,70 @@
     {{- $ip = (trim (index (splitList "," $xff) 0)) -}}
   {{- else if $xri -}}
     {{- $ip = $xri -}}
-  {{- else -}}
+  {{- end -}}
+  {{- if eq $ip "" -}}
     {{- $ip = .RemoteIP -}}
   {{- end -}}
 
-  <p>
-    You reached this page over:
-    {{ if gt (len (splitList ":" $ip)) 2 -}}
-      <span class="pill ok">IPv6</span>
-    {{- else -}}
-      <span class="pill fail">IPv4</span>
-    {{- end }}
-    <span class="info">(<code>{{ $ip }}</code>)</span>
-  </p>
-
-  <div class="grid">
-    <div>
-      <strong>Active test (client-side):</strong>
-      <div>IPv6-only hostname: <code>https://ipv6.ipv6.0ms.app/ping.png</code> → <span id="v6" class="pill">testing…</span></div>
-      <div>IPv4-only hostname: <code>https://ipv4.ipv6.0ms.app/ping.png</code> → <span id="v4" class="pill">testing…</span></div>
-      <div class="info">The test loads a tiny image from each subdomain. Success means your connection can actually reach that stack.</div>
+  <section class="card">
+    <p class="card-label">Your connection</p>
+    <div class="card-row">
+      <span>You reached this page over</span>
+      {{ if gt (len (splitList ":" $ip)) 2 -}}
+        <span class="pill ok">
+          <span class="icon">✓</span> IPv6
+        </span>
+      {{- else -}}
+        <span class="pill fail">
+          <span class="icon">✗</span> IPv4
+        </span>
+      {{- end }}
+      <code>{{ $ip }}</code>
     </div>
-  </div>
+  </section>
+
+  <section class="card">
+    <p class="card-label">Active reachability tests</p>
+    <div class="test-row">
+      <span class="label">IPv6</span>
+      <code>ipv6.ipv6.0ms.app/ping.png</code>
+      <span id="v6" class="pill testing"><span class="spinner"></span> testing…</span>
+    </div>
+    <div class="test-row">
+      <span class="label">IPv4</span>
+      <code>ipv4.ipv6.0ms.app/ping.png</code>
+      <span id="v4" class="pill testing"><span class="spinner"></span> testing…</span>
+    </div>
+    <p class="hint">Each test loads a tiny image from a single‑stack subdomain. Success means your connection can actually reach that protocol — not just that DNS resolves.</p>
+  </section>
+
   <script>
-    // Load an image with timeout; report OK/FAIL based on events
     function testImage(url, elId, timeoutMs) {
       const el = document.getElementById(elId);
       const img = new Image();
       let done = false;
-      const to = setTimeout(() => { if (done) return; done = true; el.textContent = 'FAIL (timeout)'; el.className = 'pill fail'; img.src = ''; }, timeoutMs);
-      img.onload = () => { if (done) return; done = true; clearTimeout(to); el.textContent = 'OK'; el.className = 'pill ok'; };
-      img.onerror = () => { if (done) return; done = true; clearTimeout(to); el.textContent = 'FAIL'; el.className = 'pill fail'; };
+      const setState = (cls, text) => {
+        el.className = 'pill ' + cls;
+        el.innerHTML = text;
+      };
+      const to = setTimeout(() => { if (done) return; done = true; setState('fail', '<span class="icon">✗</span> FAIL (timeout)'); img.src = ''; }, timeoutMs);
+      img.onload = () => { if (done) return; done = true; clearTimeout(to); setState('ok', '<span class="icon">✓</span> OK'); };
+      img.onerror = () => { if (done) return; done = true; clearTimeout(to); setState('fail', '<span class="icon">✗</span> FAIL'); };
       img.src = url + '?_=' + Date.now();
     }
-    // Run tests with a modest timeout
     testImage('https://ipv6.ipv6.0ms.app/ping.png', 'v6', 3500);
     testImage('https://ipv4.ipv6.0ms.app/ping.png', 'v4', 3500);
   </script>
+
+  <footer>
+    <span>Free, open, no tracking cookies.</span>
+    <span><a href="/polyfee.html">Polymarket fee checker →</a></span>
+  </footer>
   </main>
 
   <!-- Matomo -->
   <script>
     var _paq = window._paq = window._paq || [];
-    /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
     _paq.push(["setDocumentTitle", document.domain + "/" + document.title]);
     _paq.push(["setCookieDomain", "*.ipv6.0ms.app"]);
     _paq.push(["setDomains", ["*.ipv6.0ms.app"]]);
