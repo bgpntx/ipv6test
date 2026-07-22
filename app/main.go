@@ -198,6 +198,14 @@ func lookupGeo(ip string) (*GeoResponse, error) {
 
 // ─── HTTP handlers ───────────────────────────────────────────
 
+// writeJSON writes v as pretty-printed JSON (jq-style, 2-space indent).
+func writeJSON(w http.ResponseWriter, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	_ = enc.Encode(v)
+}
+
 // jsonHandler returns IP details as JSON (existing /ip endpoint).
 func jsonHandler(w http.ResponseWriter, r *http.Request) {
 	ipv4, ipv6, xff, remote := extractIPs(r)
@@ -232,7 +240,7 @@ func geoHandler(w http.ResponseWriter, r *http.Request) {
 	if ip == "" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "could not determine client IP"})
+		writeJSON(w, map[string]string{"error": "could not determine client IP"})
 		return
 	}
 
@@ -240,13 +248,11 @@ func geoHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("geo lookup error for %s: %v", ip, err)
 		// return at least the IP even if geo fails
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(&GeoResponse{IP: ip})
+		writeJSON(w, &GeoResponse{IP: ip})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(geo)
+	writeJSON(w, geo)
 }
 
 // ─── Healthcheck ─────────────────────────────────────────────
