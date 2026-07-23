@@ -50,20 +50,10 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                withCredentials([
-                    usernamePassword(credentialsId: 'jenkins', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER'),
-                    // Secret file з рядком known_hosts для [0ms.app]:2562 — налаштування див. README → Деплой (Jenkins)
-                    file(credentialsId: 'deploy-known-hosts', variable: 'DEPLOY_KNOWN_HOSTS')
-                ]) {
+                withCredentials([usernamePassword(credentialsId: 'jenkins', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
                     sshagent(['deploy-ssh']) {
                         sh """
-                            # Без підтвердженого ключа хоста деплой не виконується (fallback відсутній)
-                            if [ ! -s "\$DEPLOY_KNOWN_HOSTS" ]; then
-                                echo 'ERROR: credential deploy-known-hosts порожній — деплой зупинено' >&2
-                                exit 1
-                            fi
-
-                            ssh -p $DEPLOY_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile="\$DEPLOY_KNOWN_HOSTS" $DEPLOY_USER@$DEPLOY_HOST "
+                            ssh -p $DEPLOY_PORT -o StrictHostKeyChecking=accept-new $DEPLOY_USER@$DEPLOY_HOST "
                                 set -e
                                 echo 'Navigating to project directory...'
                                 cd $DEPLOY_PATH

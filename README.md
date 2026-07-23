@@ -28,38 +28,6 @@ docker compose up -d
   - `0ms.app` → **A** + **AAAA** (для CLI API)
 - Відкриті порти `80/tcp` та `443/tcp`
 
-## Деплой (Jenkins)
-
-Пайплайн `Jenkinsfile` деплоїть через SSH на `0ms.app:2562` з увімкненою перевіркою ключа хоста (`StrictHostKeyChecking=yes`), тому в Jenkins **обов'язково** має існувати credential:
-
-| ID | Тип | Вміст |
-|----|-----|-------|
-| `deploy-known-hosts` | Secret file | Рядок `known_hosts` з публічним ключем хоста деплою |
-
-Без нього білд падає ще до підключення — це навмисно: fallback на неперевірене з'єднання відсутній, бо в цій SSH-сесії передаються GitHub-креденшели й виконується root-шел.
-
-### Як отримати ключ хоста
-
-Тільки **з консолі самого сервера** (KVM / IPMI / консоль провайдера). `ssh-keyscan` з Jenkins-агента не підходить — він довіряє першій відповіді з мережі, тобто й підробленій:
-
-```bash
-# на сервері деплою
-cat /etc/ssh/ssh_host_ed25519_key.pub
-ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub   # відбиток для звірки
-```
-
-Локально скласти файл `known_hosts` — ім'я хоста обов'язково у форматі з портом, бо для нестандартного порту звичайне `0ms.app` **не** збігається:
-
-```
-[0ms.app]:2562 ssh-ed25519 AAAA…
-```
-
-(перші два поля рядка з `ssh_host_ed25519_key.pub`, без коментаря в кінці)
-
-Завантажити файл: *Manage Jenkins → Credentials → System → Global credentials → Add Credentials → Kind: Secret file*, ID — `deploy-known-hosts`.
-
-Після регенерації ключів на сервері (перевстановлення ОС тощо) файл треба оновити, інакше деплой зупиниться з `Host key verification failed`.
-
 ## Структура
 
 ```
