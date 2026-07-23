@@ -14,6 +14,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"unicode"
 )
 
 // ─── IP helpers ──────────────────────────────────────────────
@@ -111,10 +112,19 @@ type geoEntry struct {
 }
 
 var (
-	geoCache   = make(map[string]*geoEntry)
-	geoMu      sync.RWMutex
-	geoTTL     = 5 * time.Minute
-	httpClient = &http.Client{Timeout: 3 * time.Second}
+	geoCache = make(map[string]*geoEntry)
+	geoMu    sync.RWMutex
+	geoTTL   = 5 * time.Minute
+	// The geo provider is only reachable over plaintext HTTP on its free tier,
+	// so an on-path attacker can answer in its place. Never follow a redirect
+	// it hands us: that would let such an attacker point the lookup at a host
+	// of their choosing.
+	httpClient = &http.Client{
+		Timeout: 3 * time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 )
 
 // GeoResponse — формат відповіді /json (сумісний з ipinfo.io).
@@ -145,6 +155,63 @@ type ipAPIResponse struct {
 	Query       string  `json:"query"`
 }
 
+const (
+	// geoMaxBody caps how much of the untrusted geo reply we buffer.
+	geoMaxBody = 64 << 10
+	// geoMaxTextLen caps any single free-text field taken from the reply.
+	geoMaxTextLen = 128
+	// geoMaxTimezoneLen caps the timezone field taken from the reply.
+	geoMaxTimezoneLen = 64
+)
+
+// safeGeoText reports whether a free-text field of the geo reply (city, region,
+// org) is acceptable: bounded in length and printable, so that control
+// characters or unbounded blobs are never cached and relayed to clients.
+func safeGeoText(s string) bool {
+	if len(s) > geoMaxTextLen {
+		return false
+	}
+	for _, r := range s {
+		if !unicode.IsPrint(r) {
+			return false
+		}
+	}
+	return true
+}
+
+// safeGeoCountryCode reports whether s is an ISO-3166-1 alpha-2 code (or empty,
+// which the provider returns when it has no answer).
+func safeGeoCountryCode(s string) bool {
+	if s == "" {
+		return true
+	}
+	if len(s) != 2 {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] < 'A' || s[i] > 'Z' {
+			return false
+		}
+	}
+	return true
+}
+
+// safeGeoTimezone reports whether s looks like an IANA timezone name.
+func safeGeoTimezone(s string) bool {
+	if len(s) > geoMaxTimezoneLen {
+		return false
+	}
+	for _, r := range s {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9':
+		case r == '/', r == '_', r == '-', r == '+':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // lookupGeo fetches geo data from ip-api.com with in-memory caching.
 func lookupGeo(ip string) (*GeoResponse, error) {
 	// check cache
@@ -155,7 +222,11 @@ func lookupGeo(ip string) (*GeoResponse, error) {
 	}
 	geoMu.RUnlock()
 
-	// fetch from ip-api.com (free, no key, HTTP only)
+	// fetch from ip-api.com (free tier: no key, plaintext HTTP only — the
+	// provider serves TLS to paying customers only). The channel is therefore
+	// neither confidential nor authenticated: anyone on the path can read the
+	// queried IP and can forge the whole reply, so everything below treats the
+	// response as hostile input before it is cached and served to clients.
 	url := fmt.Sprintf("http://ip-api.com/json/%s?fields=status,country,countryCode,regionName,city,lat,lon,timezone,isp,org,as,query", ip)
 	resp, err := httpClient.Get(url)
 	if err != nil {
@@ -163,7 +234,11 @@ func lookupGeo(ip string) (*GeoResponse, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("geo lookup: http status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, geoMaxBody))
 	if err != nil {
 		return nil, fmt.Errorf("geo read body: %w", err)
 	}
@@ -175,6 +250,23 @@ func lookupGeo(ip string) (*GeoResponse, error) {
 
 	if raw.Status != "success" {
 		return nil, fmt.Errorf("geo lookup: status=%s", raw.Status)
+	}
+
+	// validate the untrusted reply before it is mapped, cached and returned
+	if q := net.ParseIP(raw.Query); q == nil || !q.Equal(net.ParseIP(ip)) {
+		return nil, fmt.Errorf("geo lookup: reply is for a different IP")
+	}
+	if !safeGeoText(raw.City) || !safeGeoText(raw.RegionName) || !safeGeoText(raw.AS) {
+		return nil, fmt.Errorf("geo lookup: reply has unacceptable text fields")
+	}
+	if !safeGeoCountryCode(raw.CountryCode) {
+		return nil, fmt.Errorf("geo lookup: reply has unacceptable country code")
+	}
+	if !safeGeoTimezone(raw.Timezone) {
+		return nil, fmt.Errorf("geo lookup: reply has unacceptable timezone")
+	}
+	if raw.Lat < -90 || raw.Lat > 90 || raw.Lon < -180 || raw.Lon > 180 {
+		return nil, fmt.Errorf("geo lookup: reply has out-of-range coordinates")
 	}
 
 	// map to ipinfo.io-compatible format

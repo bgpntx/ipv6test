@@ -73,6 +73,12 @@ curl https://0ms.app/json
 - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
 - CORS для субдоменів ping-тестів
 
+### SSH-деплой (Jenkins)
+- Підключення до `0ms.app:2562` з `StrictHostKeyChecking=yes`
+- Ключ хоста — credential `deploy-known-hosts` (Secret file), формат рядка `[0ms.app]:2562 ...`
+- Без цього credential пайплайн зупиняється, fallback на неперевірене з'єднання відсутній
+- Налаштування credential та отримання ключа хоста — див. README → «Деплой (Jenkins)»
+
 ### CSF Firewall
 - Доступ через `CC_ALLOW_PORTS` — гео-фільтрація (~55 країн)
 - `SYNFLOOD` — захист від SYN flood (75/s, burst 50)
