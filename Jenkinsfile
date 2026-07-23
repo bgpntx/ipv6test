@@ -50,38 +50,40 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'jenkins', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
-                    sshagent(['deploy-ssh']) {
-                        sh """
-                            ssh -p $DEPLOY_PORT -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST "
-                                set -e
-                                echo 'Navigating to project directory...'
-                                cd $DEPLOY_PATH
+                // Репозиторій публічний, тому fetch/pull на сервері не потребують
+                // автентифікації. Якщо він стане приватним — повернути сюди
+                // withCredentials і передавати креденшел через credential.helper,
+                // а не в URL ремоуту (інакше він осяде в .git/config на сервері).
+                sshagent(['deploy-ssh']) {
+                    sh """
+                        ssh -p $DEPLOY_PORT -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST "
+                            set -e
+                            echo 'Navigating to project directory...'
+                            cd $DEPLOY_PATH
 
-                                echo 'Configuring Git remote...'
-                                git remote set-url origin https://\$GIT_USER:\$GIT_PASS@github.com/bgpntx/ipv6test.git
+                            echo 'Configuring Git remote...'
+                            git remote set-url origin https://github.com/bgpntx/ipv6test.git
 
-                                echo 'Pulling changes for branch $DEPLOY_BRANCH...'
-                                git fetch origin
-                                git checkout $DEPLOY_BRANCH
-                                git checkout .
-                                git clean -fd
-                                git pull origin $DEPLOY_BRANCH
+                            echo 'Pulling changes for branch $DEPLOY_BRANCH...'
+                            git fetch origin
+                            git checkout $DEPLOY_BRANCH
+                            git checkout .
+                            git clean -fd
+                            git pull origin $DEPLOY_BRANCH
 
-                                # Умовний рестарт сервісів
-                                if [ '${RESTART_SERVICES}' = 'true' ]; then
-                                    echo 'Rebuilding and restarting Docker containers...'
-                                    docker compose down --remove-orphans 2>/dev/null || true
-                                    docker compose up -d --build
-                                    echo 'Docker containers restarted successfully'
-                                else
-                                    echo '⏭️ Skipping service restart (only non-critical files changed)'
-                                fi
+                            # Умовний рестарт сервісів
+                            if [ '${RESTART_SERVICES}' = 'true' ]; then
+                                echo 'Rebuilding and restarting Docker containers...'
+                                docker compose down --remove-orphans 2>/dev/null || true
+                                docker compose up -d --build
+                                echo 'Docker containers restarted successfully'
+                            else
+                                echo '⏭️ Skipping service restart (only non-critical files changed)'
+                            fi
 
-                                echo 'Deploy Finished Successfully!'
-                            "
-                        """
-                    }
+                            echo 'Deploy Finished Successfully!'
+                        "
+                    """
                 }
             }
         }
