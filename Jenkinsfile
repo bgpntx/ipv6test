@@ -53,25 +53,20 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'jenkins', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
                     sshagent(['deploy-ssh']) {
                         sh """
-                            ssh -p $DEPLOY_PORT -o StrictHostKeyChecking=accept-new $DEPLOY_USER@$DEPLOY_HOST "
+                            ssh -p $DEPLOY_PORT -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST "
                                 set -e
                                 echo 'Navigating to project directory...'
                                 cd $DEPLOY_PATH
 
                                 echo 'Configuring Git remote...'
-                                git remote set-url origin https://github.com/bgpntx/ipv6test.git
+                                git remote set-url origin https://\$GIT_USER:\$GIT_PASS@github.com/bgpntx/ipv6test.git
 
                                 echo 'Pulling changes for branch $DEPLOY_BRANCH...'
-                                # Credentials are passed to git per invocation through a helper that
-                                # reads them from the environment, so they are never written to .git/config.
-                                export GIT_USER='\$GIT_USER' GIT_PASS='\$GIT_PASS'
-                                GIT_CRED_HELPER='!f() { echo username=\\"\\\$GIT_USER\\"; echo password=\\"\\\$GIT_PASS\\"; }; f'
-                                git -c credential.helper= -c credential.helper=\\"\\\$GIT_CRED_HELPER\\" fetch origin
+                                git fetch origin
                                 git checkout $DEPLOY_BRANCH
                                 git checkout .
                                 git clean -fd
-                                git -c credential.helper= -c credential.helper=\\"\\\$GIT_CRED_HELPER\\" pull origin $DEPLOY_BRANCH
-                                unset GIT_USER GIT_PASS GIT_CRED_HELPER
+                                git pull origin $DEPLOY_BRANCH
 
                                 # Умовний рестарт сервісів
                                 if [ '${RESTART_SERVICES}' = 'true' ]; then
